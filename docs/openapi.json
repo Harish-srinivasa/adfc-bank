@@ -1,0 +1,278 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ADFC Local Training API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:4174/api/v1/sandbox"
+    }
+  ],
+  "security": [
+    {
+      "trainingKey": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "trainingKey": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "paths": {
+    "/session": {
+      "get": {
+        "summary": "Read the authenticated role",
+        "description": "Allowed role: customer or reviewer",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Invalid access key"
+          },
+          "404": {
+            "description": "Unsupported route or role, or unknown request"
+          }
+        }
+      }
+    },
+    "/accounts": {
+      "get": {
+        "summary": "List owned training accounts and available amounts in paise",
+        "description": "Allowed role: customer",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Invalid access key"
+          },
+          "404": {
+            "description": "Unsupported route or role, or unknown request"
+          }
+        }
+      }
+    },
+    "/statement": {
+      "get": {
+        "summary": "List up to 100 journal lines for owned accounts",
+        "description": "Allowed role: customer",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Invalid access key"
+          },
+          "404": {
+            "description": "Unsupported route or role, or unknown request"
+          }
+        }
+      }
+    },
+    "/requests": {
+      "get": {
+        "summary": "List up to 100 own requests for a customer, or all requests for a reviewer",
+        "description": "Allowed role: customer or reviewer",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Invalid access key"
+          },
+          "404": {
+            "description": "Unsupported route or role, or unknown request"
+          }
+        }
+      },
+      "post": {
+        "summary": "Open a pending training request",
+        "description": "Allowed role: customer",
+        "responses": {
+          "201": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Invalid access key"
+          },
+          "404": {
+            "description": "Unsupported route or role, or unknown request"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "409": {
+            "description": "Conflicting state or idempotency key"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "details"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "details": {
+                    "type": "string",
+                    "maxLength": 240
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/requests/{id}/decision": {
+      "post": {
+        "summary": "Approve or reject a pending request",
+        "description": "Allowed role: reviewer",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Invalid access key"
+          },
+          "404": {
+            "description": "Unsupported route or role, or unknown request"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "409": {
+            "description": "Conflicting state or idempotency key"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "APPROVED",
+                      "REJECTED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/transfers": {
+      "post": {
+        "summary": "Post an own-account transfer in whole paise",
+        "description": "Allowed role: customer",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Invalid access key"
+          },
+          "404": {
+            "description": "Unsupported route or role, or unknown request"
+          },
+          "400": {
+            "description": "Invalid request"
+          },
+          "409": {
+            "description": "Conflicting state or idempotency key"
+          },
+          "403": {
+            "description": "Account ownership check failed"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "to",
+                  "amount"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string"
+                  },
+                  "to": {
+                    "type": "string"
+                  },
+                  "amount": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ]
+      }
+    },
+    "/audit": {
+      "get": {
+        "summary": "List up to 100 audit events",
+        "description": "Allowed role: reviewer",
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          },
+          "401": {
+            "description": "Invalid access key"
+          },
+          "404": {
+            "description": "Unsupported route or role, or unknown request"
+          }
+        }
+      }
+    }
+  }
+}
